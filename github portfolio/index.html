@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GITSCORE PRO | Ultimate GitHub Portfolio Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root { --brand: #6366f1; --bg: #020617; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg);
+            color: #f1f5f9;
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+        }
+
+        .bg-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            /* Layered background: Gradients on top of a darkened tech image */
+            background: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, rgba(2, 6, 23, 0.8), rgba(2, 6, 23, 0.95)),
+                url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        #particles-js {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3;
+            mix-blend-mode: screen;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-panel:hover { border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6); }
+
+        .animate-reveal { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        #cursor-glow {
+            position: fixed; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            border-radius: 50%; pointer-events: none; z-index: -1; transform: translate(-50%, -50%);
+        }
+
+        .counter-value { font-variant-numeric: tabular-nums; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .markdown-body h1, .markdown-body h2 { font-weight: 800; color: white; margin-bottom: 1rem; margin-top: 1.5rem; }
+        .markdown-body p { margin-bottom: 1rem; color: #94a3b8; line-height: 1.6; }
+        .markdown-body ul { list-style: disc; margin-left: 1.5rem; margin-bottom: 1rem; color: #94a3b8; }
+
+        /* Roadmap UI Additions */
+        .roadmap-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .roadmap-card:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(99, 102, 241, 0.2); }
+        .collapse-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; }
+        .collapse-content.open { max-height: 1000px; }
+        
+        /* Actionable Card Styling */
+        .actionable-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body class="selection:bg-indigo-500/30">
+
+    <div class="bg-canvas"></div>
+    <canvas id="particles-js"></canvas>
+    <div id="cursor-glow"></div>
+
+    <!-- Navigation -->
+    <header class="fixed top-0 w-full z-50 glass-panel border-b border-white/5 py-4">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-3 group cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                    <i data-lucide="brain-circuit" class="text-white w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight leading-none text-white">GITSCORE <span class="text-indigo-500">PRO</span></h1>
+                    <p class="text-[9px] uppercase tracking-[0.3em] text-slate-500 font-bold">Ultimate Intelligence v7.0</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="rateLimitBadge" class="hidden flex items-center gap-2 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full">
+                    <div class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></div>
+                    <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">API Limit Hit</span>
+                </div>
+                <!-- Model Selector Toggle -->
+                <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Mode:</span>
+                    <select id="modelSelector" class="bg-transparent text-[10px] font-bold text-indigo-400 outline-none cursor-pointer">
+                        <option value="gemini-1.5-flash" selected>Standard (External)</option>
+                        <option value="gemini-2.5-flash-preview-09-2025">Preview (Internal)</option>
+                    </select>
+                </div>
+                <button id="pdfBtn" onclick="exportPDF()" class="hidden px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all flex items-center gap-2">
+                    <i data-lucide="download" class="w-3 h-3"></i> Report
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative pt-48 pb-12">
+        <div class="max-w-4xl mx-auto px-6 text-center animate-reveal">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-6">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                Production Ready Gemini Intelligence
+            </div>
+            <h2 class="text-5xl md:text-7xl font-black mb-6 tracking-tight leading-[1.1] text-white">
+                GitHub Portfolio <br><span class="text-indigo-500">Ultimate Diagnostics</span>
+            </h2>
+            <p class="text-lg text-slate-400 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
+                Professional-grade analysis for developers. Generate recruiter reports, career roadmaps, and PDF dossiers in seconds.
+            </p>
+
+            <div id="audit-section" class="max-w-xl mx-auto glass-panel p-2 rounded-[2.5rem] border-white/10 shadow-2xl transition-all hover:border-white/20">
+                <form id="auditForm" class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input id="githubHandle" type="text" placeholder="Username or GitHub URL..." class="w-full bg-transparent py-5 pl-14 pr-4 outline-none text-lg font-bold placeholder:text-slate-600 text-white" required>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-primary px-8 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 text-white disabled:opacity-50">
+                        <span>Analyze</span>
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <div id="statusContainer" class="mt-8 flex flex-col items-center gap-3 hidden">
+                <div class="flex items-center gap-3 bg-slate-900/80 px-5 py-3 rounded-full border border-white/5 backdrop-blur-md">
+                    <div class="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span id="statusMsg" class="text-xs font-black uppercase tracking-widest text-slate-300">Synchronizing Data...</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Dashboard -->
+    <main id="appContent" class="max-w-7xl mx-auto px-6 pb-32">
+        <div id="welcomeGrid" class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 pt-10">
+            <div class="glass-panel p-8 rounded-3xl border-white/5 hover:bg-white/5 group">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:rotate-12 transition-transform"><i data-lucide="bar-chart-3" class="text-indigo-500"></i></div>
+                <h3 class="text-sm font-bold mb-1 text-white">Career Level</h3>
+                <p class="text-[11px] text-slate-400">Professional estimation based on impact and depth.</p>
+            </div>
+            <div class="glass-panel p-8 rounded-3xl border-white/5 hover:bg-white/5 group">
+                <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:rotate-12 transition-transform"><i data-lucide="shield-alert" class="text-purple-500"></i></div>
+                <h3 class="text-sm font-bold mb-1 text-white">Skill Gaps</h3>
+                <p class="text-[11px] text-slate-400">Identify missing CI/CD, testing, or cloud deployments.</p>
+            </div>
+            <div class="glass-panel p-8 rounded-3xl border-white/5 hover:bg-white/5 group">
+                <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:rotate-12 transition-transform"><i data-lucide="file-text" class="text-emerald-500"></i></div>
+                <h3 class="text-sm font-bold mb-1 text-white">PDF Reports</h3>
+                <p class="text-[11px] text-slate-400">Download recruiter-ready dossiers immediately.</p>
+            </div>
+            <div class="glass-panel p-8 rounded-3xl border-white/5 hover:bg-white/5 group">
+                <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:rotate-12 transition-transform"><i data-lucide="target" class="text-amber-500"></i></div>
+                <h3 class="text-sm font-bold mb-1 text-white">Comparison</h3>
+                <p class="text-[11px] text-slate-400">See how you rank against global benchmarks.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal System -->
+    <div id="aiModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md hidden px-4">
+        <div class="glass-panel w-full max-w-2xl rounded-[2.5rem] p-8 md:p-12 relative max-h-[90vh] overflow-y-auto border-indigo-500/20">
+            <button onclick="closeModal()" class="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <div id="aiModalContent" class="markdown-body"></div>
+        </div>
+    </div>
+
+    <footer class="py-20 border-t border-white/5 text-center">
+        <p class="text-[10px] font-black text-slate-700 uppercase tracking-[0.4em]">© 2026 GITSCORE PRO • GLOBAL DEVELOPER BENCHMARKING</p>
+    </footer>
+
+    <script>
+        const apiKey = ""; 
+        lucide.createIcons();
+
+        // Canvas & Cursor Logic
+        const glow = document.getElementById('cursor-glow');
+        window.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+
+        const canvas = document.getElementById('particles-js');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function initParticles() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<50; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1,
+                    speedX: Math.random() * 0.5 - 0.25,
+                    speedY: Math.random() * 0.5 - 0.25
+                });
+            }
+        }
+        function animateParticles() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(99, 102, 241, 0.3)";
+            particles.forEach(p => {
+                p.x += p.speedX; p.y += p.speedY;
+                if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        window.onload = () => { initParticles(); animateParticles(); };
+        window.onresize = initParticles;
+
+        // Core Data Functions
+        let currentUser = null;
+        let currentAnalysis = null;
+
+        function parseGithubUsername(input) {
+            try {
+                if (input.includes('github.com/')) {
+                    const parts = input.replace(/\/$/, '').split('github.com/')[1].split('/');
+                    return parts[0];
+                }
+                return input.trim().replace(/^@/, '');
+            } catch (e) { return input.trim(); }
+        }
+
+        async function fetchWithRetry(url, options = {}, retries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < retries; i++) {
+                const res = await fetch(url, options);
+                if (res.status === 403) {
+                    document.getElementById('rateLimitBadge').classList.remove('hidden');
+                    throw new Error("GitHub API Rate Limit. Try again later or use a VPN.");
+                }
+                if (res.ok) return res.json();
+                if (i < retries - 1) await new Promise(r => setTimeout(r, delay *= 2));
+            }
+            throw new Error("Network connection failure");
+        }
+
+        const auditForm = document.getElementById('auditForm');
+        const statusContainer = document.getElementById('statusContainer');
+        const statusMsg = document.getElementById('statusMsg');
+
+        auditForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rawInput = document.getElementById('githubHandle').value;
+            const handle = parseGithubUsername(rawInput);
+            if(!handle) return;
+
+            statusContainer.classList.remove('hidden');
+            statusMsg.textContent = "Establishing Secure Connection...";
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const user = await fetchWithRetry(`https://api.github.com/users/${handle}`);
+                currentUser = user;
+
+                statusMsg.textContent = "Harvesting Repositories...";
+                const repos = await fetchWithRetry(`https://api.github.com/users/${handle}/repos?per_page=100&sort=pushed`);
+
+                statusMsg.textContent = "Analyzing Global Events...";
+                const events = await fetchWithRetry(`https://api.github.com/users/${handle}/events/public`);
+
+                currentAnalysis = runUltimateAnalyzer(user, repos, events);
+                renderDashboard(user, currentAnalysis);
+                statusContainer.classList.add('hidden');
+                document.getElementById('pdfBtn').classList.remove('hidden');
+
+                if (currentAnalysis.overallScore > 80) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7'] });
+            } catch (err) {
+                statusMsg.textContent = `Error: ${err.message}`;
+                setTimeout(() => statusContainer.classList.add('hidden'), 4000);
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        function runUltimateAnalyzer(user, repos, events) {
+            const original = repos.filter(r => !r.fork);
+            const pushes = events.filter(e => e.type === 'PushEvent').length;
+            const prs = events.filter(e => e.type === 'PullRequestEvent').length;
+            const issues = events.filter(e => e.type === 'IssuesEvent').length;
+            
+            const communityScore = Math.min(100, (prs * 15) + (issues * 8) + (user.followers / 2));
+            
+            const lastActiveDate = events[0] ? new Date(events[0].created_at) : new Date(user.updated_at);
+            const gapDays = Math.floor((new Date() - lastActiveDate) / (86400000));
+            const consistency = gapDays < 5 ? "High" : (gapDays < 15 ? "Medium" : "Low");
+
+            const langs = {};
+            original.forEach(r => { if(r.language) langs[r.language] = (langs[r.language] || 0) + 1; });
+            const primaryLang = Object.keys(langs).reduce((a, b) => langs[a] > langs[b] ? a : b, 'Mixed');
+            
+            const stars = original.reduce((s, r) => s + r.stargazers_count, 0);
+            
+            // Refined Career Mapping Logic
+            let career = "Beginner";
+            const score = Math.round((original.filter(r => r.description && r.description.length > 20).length / Math.max(1, original.length)) * 100 * 0.3 + communityScore * 0.3 + (original.length * 1.5) + Math.min(stars/2, 20) + 5);
+            
+            if (score >= 85) career = "Advanced / Interview Ready";
+            else if (score >= 65) career = "Mid-Level Developer";
+            else if (score >= 40) career = "Junior Developer";
+            else career = "Beginner";
+
+            const gaps = [];
+            if (!original.some(r => r.has_pages || r.homepage)) gaps.push("Missing Live Deployments");
+            if (!original.some(r => r.name.toLowerCase().includes('test'))) gaps.push("Low Testing Coverage");
+            if (!original.some(r => r.name.toLowerCase().includes('ci') || r.name.toLowerCase().includes('github/workflows'))) gaps.push("Missing CI/CD Automation");
+            if (original.length < 5) gaps.push("Limited Project Surface");
+            if (communityScore < 30) gaps.push("Low Collaboration Signals");
+
+            const docScore = Math.round((original.filter(r => r.description && r.description.length > 20).length / Math.max(1, original.length)) * 100);
+            const percentile = Math.min(99, Math.round(docScore * 0.4 + communityScore * 0.3 + (original.length * 2)));
+            const interviewProb = Math.min(100, Math.round((docScore * 0.3) + (communityScore * 0.4) + Math.min(stars, 50) + 15));
+            const overallScore = Math.min(100, score);
+
+            return {
+                overallScore, career, percentile, interviewProb,
+                metrics: { docScore, communityScore, repoCount: original.length, stars, prs, issues, gapDays, consistency },
+                tech: { primaryLang, langs, diversity: Object.keys(langs).length },
+                gaps,
+                repos: original.slice(0, 10).map(r => ({ name: r.name, stars: r.stargazers_count, updated: new Date(r.pushed_at).toLocaleDateString(), desc: r.description }))
+            };
+        }
+
+        function renderDashboard(user, data) {
+            const appContent = document.getElementById('appContent');
+            appContent.innerHTML = `
+                <div class="animate-reveal space-y-8 pt-10" id="report-root">
+                    <div class="grid lg:grid-cols-12 gap-8">
+                        <div class="lg:col-span-4 glass-panel rounded-[2.5rem] p-10 text-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-6">
+                                <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">${data.career}</span>
+                            </div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-2">Portfolio Score</p>
+                            <h2 class="text-[100px] font-black text-white leading-none mb-2 counter-value">${data.overallScore}</h2>
+                            <p class="text-xs font-bold text-slate-400 mb-8">Top ${100 - data.percentile}% of developers globally</p>
+                            
+                            <div class="space-y-3">
+                                <button onclick="getAiStrategy()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">
+                                    ✨ Generate Career Roadmap
+                                </button>
+                                <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Powered by Data Intelligence</p>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-8 glass-panel rounded-[2.5rem] p-10 flex flex-col justify-between">
+                            <div class="flex flex-col md:flex-row justify-between gap-6">
+                                <div class="flex items-center gap-6">
+                                    <div class="relative">
+                                        <img src="${user.avatar_url}" class="w-24 h-24 rounded-3xl border-4 border-slate-800 shadow-2xl">
+                                        <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center border-4 border-slate-900">
+                                            <i data-lucide="check" class="text-white w-4 h-4"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-4xl font-black text-white tracking-tight">${user.name || user.login}</h3>
+                                        <p class="text-sm text-slate-500 font-bold flex items-center gap-2">
+                                            @${user.login} <span class="w-1 h-1 bg-slate-700 rounded-full"></span> ${user.location || 'Global Citizen'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <div class="px-4 py-2 bg-white/5 rounded-2xl border border-white/5 text-right">
+                                        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Stack Diversity</p>
+                                        <p class="text-lg font-black text-white">${data.tech.diversity} Languages</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                                <div class="p-5 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <p class="text-[8px] font-black text-slate-500 uppercase mb-2">Collaboration</p>
+                                    <p class="text-2xl font-black text-emerald-400">${data.metrics.communityScore}%</p>
+                                    <div class="w-full h-1 bg-slate-800 rounded-full mt-2 overflow-hidden"><div class="h-full bg-emerald-500" style="width:${data.metrics.communityScore}%"></div></div>
+                                </div>
+                                <div class="p-5 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <p class="text-[8px] font-black text-slate-500 uppercase mb-2">Consistency</p>
+                                    <p class="text-2xl font-black text-indigo-400">${data.metrics.consistency}</p>
+                                    <p class="text-[8px] text-slate-600 font-bold mt-1">${data.metrics.gapDays}d Inactive</p>
+                                </div>
+                                <div class="p-5 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <p class="text-[8px] font-black text-slate-500 uppercase mb-2">Impact</p>
+                                    <p class="text-2xl font-black text-white">${data.metrics.stars} ★</p>
+                                    <p class="text-[8px] text-slate-600 font-bold mt-1">Total Stars</p>
+                                </div>
+                                <div class="p-5 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <p class="text-[8px] font-black text-slate-500 uppercase mb-2">Projects</p>
+                                    <p class="text-2xl font-black text-white">${data.metrics.repoCount}</p>
+                                    <p class="text-[8px] text-slate-600 font-bold mt-1">Original Repos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div class="glass-panel p-8 rounded-[2.5rem] border-l-4 border-amber-500/50">
+                            <h4 class="text-xs font-black text-amber-500 uppercase tracking-widest mb-6">Recruiter Simulator</h4>
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase mb-2">
+                                        <span>Interview Probability</span>
+                                        <span class="text-white">${data.interviewProb}%</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="h-full bg-amber-500" style="width:${data.interviewProb}%"></div>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex gap-3 text-[10px] font-medium text-slate-300">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                                        <span>High repository documentation score.</span>
+                                    </div>
+                                    <div class="flex gap-3 text-[10px] font-medium text-slate-300">
+                                        <i data-lucide="${data.metrics.gapDays > 10 ? 'alert-triangle' : 'check-circle-2'}" class="w-4 h-4 ${data.metrics.gapDays > 10 ? 'text-rose-500' : 'text-emerald-500'}"></i>
+                                        <span>${data.metrics.gapDays > 10 ? 'Significant activity gap detected.' : 'Recent active contributions.'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-8 rounded-[2.5rem]">
+                            <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Language Ecosystem</h4>
+                            <div class="h-[150px]"><canvas id="langChart"></canvas></div>
+                        </div>
+
+                        <div class="glass-panel p-8 rounded-[2.5rem] border-l-4 border-rose-500/50">
+                            <h4 class="text-xs font-black text-rose-500 uppercase tracking-widest mb-6">Skill Gap Detector</h4>
+                            <div class="space-y-3">
+                                ${data.gaps.length > 0 ? data.gaps.map(g => `
+                                    <div class="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl flex items-center gap-3">
+                                        <i data-lucide="shield-alert" class="w-4 h-4 text-rose-500"></i>
+                                        <span class="text-[10px] font-bold text-rose-200">${g}</span>
+                                    </div>
+                                `).join('') : '<p class="text-[10px] text-emerald-400 font-bold">No critical skill gaps detected!</p>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="roadmap-container" class="hidden animate-reveal space-y-12 pb-12">
+                        <!-- Dynamic Roadmap Injection -->
+                    </div>
+                </div>
+            `;
+            
+            initCharts(data);
+            lucide.createIcons();
+            appContent.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function initCharts(data) {
+            const ctx = document.getElementById('langChart').getContext('2d');
+            const labels = Object.keys(data.tech.langs).slice(0, 5);
+            const counts = Object.values(data.tech.langs).slice(0, 5);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    cutout: '75%',
+                    plugins: { legend: { display: false } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Determinisitc Roadmap Generator Logic
+        function generateRoadmapUI(data) {
+            const gaps = data.gaps;
+            const score = data.overallScore;
+
+            const techLearning = [];
+            if (data.tech.diversity < 3) techLearning.push({ tech: "TypeScript / Node.js", priority: "High", why: "Expand into full-stack architecture to increase marketability." });
+            if (gaps.includes("Low Testing Coverage")) techLearning.push({ tech: "Jest / Vitest", priority: "High", why: "Essential for senior-level engineering standards." });
+            if (gaps.includes("Missing CI/CD Automation")) techLearning.push({ tech: "GitHub Actions", priority: "Med", why: "Automate testing and deployment workflows." });
+            if (gaps.includes("Missing Live Deployments")) techLearning.push({ tech: "Vercel / AWS", priority: "High", why: "Proves you can ship working products to production." });
+
+            const plan = {
+                day30: gaps.includes("Missing Live Deployments") ? "Deploy 3 major projects to Vercel/Netlify." : "Refactor Top 2 projects for clean architecture.",
+                day60: gaps.includes("Low Testing Coverage") ? "Achieve 70%+ test coverage on main repo." : "Contribute to 1 major Open Source project.",
+                day90: "Build and deploy a complex Full-Stack SaaS demo."
+            };
+
+            // Recommendation Cards Logic
+            const recommendations = [
+                {
+                    title: "Standardize Commits",
+                    impact: "High Impact",
+                    icon: "git-merge",
+                    desc: "Recruiters look for professional git hygiene (feat, fix, refactor).",
+                    next: "USE 'GIT-CZ' FOR NEXT 10 COMMITS."
+                },
+                {
+                    title: "Storytelling READMEs",
+                    impact: "High Impact",
+                    icon: "book-open",
+                    desc: `Your current documentation score is ${data.metrics.docScore}%. High impact projects need high impact text.`,
+                    next: "ADD 'HOW IT WORKS' SECTION TO TOP REPO."
+                },
+                {
+                    title: "Architecture Diagram",
+                    impact: "Med Impact",
+                    icon: "network",
+                    desc: "Visualizing system flow proves senior-level architectural thinking.",
+                    next: "ADD A MERMAID.JS DIAGRAM TO YOUR MAIN README."
+                },
+                {
+                    title: "Pin Strategic Work",
+                    impact: "High Impact",
+                    icon: "pin",
+                    desc: "Displaying your best 4 projects ensures the first 10 seconds of a visit count.",
+                    next: "SELECT 4 PROJECTS WITH BEST UI/DOCS."
+                },
+                {
+                    title: "Add Deployment Links",
+                    impact: "High Impact",
+                    icon: "external-link",
+                    desc: "Working code is worth 10x more than cloned code to hiring managers.",
+                    next: "LINK VERCEL OR NETLIFY TO YOUR 3 MAIN REPOS."
+                },
+                {
+                    title: "Archive Legacy",
+                    impact: "Med Impact",
+                    icon: "archive",
+                    desc: `Dormant, empty repos create noise. Your profile is currently ${data.metrics.repoCount} repos deep.`,
+                    next: "ARCHIVE PROJECTS NOT TOUCHED IN 2 YEARS."
+                }
+            ];
+
+            return `
+                <div class="pt-10 border-t border-white/5 space-y-12">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <i data-lucide="map" class="text-white w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-black text-white tracking-tighter uppercase">Actionable Roadmap</h3>
+                            <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Execution Beats Elegance</p>
+                        </div>
+                    </div>
+
+                    <!-- Actionable Grid -->
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${recommendations.map(rec => `
+                            <div class="actionable-card min-h-[220px]">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                                        <i data-lucide="${rec.icon}"></i>
+                                    </div>
+                                    <span class="text-[8px] px-2 py-0.5 rounded ${rec.impact.includes('High') ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'} font-black uppercase tracking-widest">
+                                        ${rec.impact}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-white mb-2">${rec.title}</h4>
+                                    <p class="text-[10px] text-slate-500 leading-relaxed font-medium mb-4">${rec.desc}</p>
+                                </div>
+                                <div class="text-[9px] font-black text-indigo-400 uppercase tracking-widest border-t border-white/5 pt-3 mt-auto">
+                                    Next Step: ${rec.next}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="grid lg:grid-cols-3 gap-6">
+                        <!-- Current Position Card -->
+                        <div class="roadmap-card">
+                            <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex justify-between">
+                                Current Position <i data-lucide="user-check" class="w-3 h-3 text-indigo-500"></i>
+                            </h4>
+                            <div class="inline-block px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-[10px] font-bold mb-4 uppercase">
+                                ${data.career}
+                            </div>
+                            <div class="space-y-4">
+                                <div class="p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <p class="text-[9px] font-black text-slate-600 uppercase mb-1">Key Strengths</p>
+                                    <p class="text-xs font-bold text-slate-300">Strong ${data.tech.primaryLang} focus with ${data.metrics.repoCount} active projects.</p>
+                                </div>
+                                <div class="p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <p class="text-[9px] font-black text-slate-600 uppercase mb-1">Critical Weakness</p>
+                                    <p class="text-xs font-bold text-rose-400">${gaps[0] || 'Market Saturation'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Technical Timeline (30-60-90) -->
+                        <div class="lg:col-span-2 roadmap-card">
+                            <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-8">Execution Timeline</h4>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <div class="p-5 bg-slate-900/50 rounded-2xl border border-indigo-500/20">
+                                    <div class="text-[9px] font-black text-indigo-400 uppercase mb-2">30 Days</div>
+                                    <p class="text-xs text-white font-bold mb-2">Foundation Fixes</p>
+                                    <p class="text-[10px] text-slate-500 font-medium">${plan.day30}</p>
+                                </div>
+                                <div class="p-5 bg-slate-900/50 rounded-2xl border border-indigo-500/20">
+                                    <div class="text-[9px] font-black text-indigo-400 uppercase mb-2">60 Days</div>
+                                    <p class="text-xs text-white font-bold mb-2">Technical Depth</p>
+                                    <p class="text-[10px] text-slate-500 font-medium">${plan.day60}</p>
+                                </div>
+                                <div class="p-5 bg-slate-900/50 rounded-2xl border border-indigo-500/20">
+                                    <div class="text-[9px] font-black text-indigo-400 uppercase mb-2">90 Days</div>
+                                    <p class="text-xs text-white font-bold mb-2">Mastery & Launch</p>
+                                    <p class="text-[10px] text-slate-500 font-medium">${plan.day90}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Functional Checklist -->
+                        <div class="lg:col-span-3 roadmap-card border-l-4 border-emerald-500/40">
+                             <div class="flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('open')">
+                                <h4 class="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="check-square" class="w-4 h-4"></i> Interview Readiness Checklist
+                                </h4>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-600"></i>
+                             </div>
+                             <div class="collapse-content mt-6 open">
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${data.metrics.repoCount >= 3 ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${data.metrics.repoCount >= 3 ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${data.metrics.repoCount >= 3 ? 'text-slate-200' : 'text-slate-500'} uppercase">3+ Strong Pinned Projects</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${!gaps.includes('Missing Live Deployments') ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${!gaps.includes('Missing Live Deployments') ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${!gaps.includes('Missing Live Deployments') ? 'text-slate-200' : 'text-slate-500'} uppercase">Deployment Demos Active</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${data.metrics.docScore >= 70 ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${data.metrics.docScore >= 70 ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${data.metrics.docScore >= 70 ? 'text-slate-200' : 'text-slate-500'} uppercase">Deep Technical Storytelling</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${data.metrics.gapDays < 7 ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${data.metrics.gapDays < 7 ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${data.metrics.gapDays < 7 ? 'text-slate-200' : 'text-slate-500'} uppercase">Consistent Commit Velocity</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${!gaps.includes('Low Testing Coverage') ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${!gaps.includes('Low Testing Coverage') ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${!gaps.includes('Low Testing Coverage') ? 'text-slate-200' : 'text-slate-500'} uppercase">Professional Test Suite</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-all hover:bg-white/10">
+                                        <i data-lucide="${!gaps.includes('Missing CI/CD Automation') ? 'check-circle-2' : 'circle'}" class="w-4 h-4 ${!gaps.includes('Missing CI/CD Automation') ? 'text-emerald-500' : 'text-slate-600'}"></i>
+                                        <span class="text-[10px] font-bold ${!gaps.includes('Missing CI/CD Automation') ? 'text-slate-200' : 'text-slate-500'} uppercase">Automated Pipelines (CI/CD)</span>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function getAiStrategy() {
+            if (!currentAnalysis) return;
+            
+            const roadmapContainer = document.getElementById('roadmap-container');
+            const statusContainer = document.getElementById('statusContainer');
+            const statusMsg = document.getElementById('statusMsg');
+
+            // 1. Show Loading
+            statusContainer.classList.remove('hidden');
+            statusMsg.textContent = "Synthesizing Roadmap Data...";
+
+            // Simulate slight delay for "intelligence feel" then generate UI
+            setTimeout(() => {
+                const roadmapHTML = generateRoadmapUI(currentAnalysis);
+                roadmapContainer.innerHTML = roadmapHTML;
+                roadmapContainer.classList.remove('hidden');
+                
+                // Finalize icons for the newly injected HTML
+                lucide.createIcons();
+                
+                // Scroll to the roadmap
+                roadmapContainer.scrollIntoView({ behavior: 'smooth' });
+                
+                statusContainer.classList.add('hidden');
+                
+                // Success confetti for the roadmap reveal
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.9 },
+                    colors: ['#10b981', '#6366f1']
+                });
+            }, 800);
+        }
+
+        function closeModal() {
+            document.getElementById('aiModal').classList.add('hidden');
+        }
+
+        async function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('report-root');
+            
+            statusContainer.classList.remove('hidden');
+            statusMsg.textContent = "Generating PDF Dossier...";
+
+            try {
+                const canvas = await html2canvas(element, {
+                    backgroundColor: '#020617',
+                    scale: 1.5,
+                    logging: false,
+                    useCORS: true,
+                    windowWidth: 1200
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                
+                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                doc.save(`GitScore_Report_${currentUser.login}.pdf`);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                statusContainer.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
